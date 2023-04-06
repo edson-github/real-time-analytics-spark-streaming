@@ -18,7 +18,7 @@ import json
 from botocore.client import Config
 
 def lambda_handler(event, context):
-    if event['RequestType'] == 'Create' or event['RequestType'] == 'Update':
+    if event['RequestType'] in ['Create', 'Update']:
         Bucket= os.environ['APP_BUCKET']
         try:
             s3 = boto3.resource('s3', region_name=os.environ['AWS_REGION'], config=Config(signature_version='s3v4'))
@@ -41,14 +41,14 @@ def lambda_handler(event, context):
     responseUrl = event['ResponseURL']
     print(responseUrl)
 
-    responseBody = {}
-    responseBody['Status'] = status
-    responseBody['Reason'] = 'See the details in CloudWatch Log Stream: ' + context.log_stream_name
-    responseBody['PhysicalResourceId'] = context.log_stream_name
-    responseBody['StackId'] = event['StackId']
-    responseBody['RequestId'] = event['RequestId']
-    responseBody['LogicalResourceId'] = event['LogicalResourceId']
-
+    responseBody = {
+        'Status': status,
+        'Reason': f'See the details in CloudWatch Log Stream: {context.log_stream_name}',
+        'PhysicalResourceId': context.log_stream_name,
+        'StackId': event['StackId'],
+        'RequestId': event['RequestId'],
+        'LogicalResourceId': event['LogicalResourceId'],
+    }
     json_responseBody = json.dumps(responseBody)
 
     print("Response body:\n" + json_responseBody)
@@ -62,6 +62,6 @@ def lambda_handler(event, context):
         response = requests.put(responseUrl,
                                 data=json_responseBody,
                                 headers=headers)
-        print("Status code: " + response.reason)
+        print(f"Status code: {response.reason}")
     except Exception as e:
-        print("send(..) failed executing requests.put(..): " + str(e))
+        print(f"send(..) failed executing requests.put(..): {str(e)}")
